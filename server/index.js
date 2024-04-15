@@ -11,15 +11,18 @@ app.use(express.json());
 // Log the requests as they come in
 app.use(require("morgan")("dev"));
 
-// Create Notes - C
+// Create falvors - C
 app.post("/api/flavors", async (req, res, next) => {
   try {
     const SQL = `
-      INSERT INTO notes(txt)
-      VALUES($1)
+      INSERT INTO flavors(name, is_favorite)
+      VALUES($1,$2)
       RETURNING *
     `;
-    const response = await client.query(SQL, [req.body.txt]);
+    const response = await client.query(SQL, [
+      req.body.name,
+      req.body.is_favorite,
+    ]);
     res.send(response.rows[0]);
   } catch (ex) {
     next(ex);
@@ -39,17 +42,30 @@ app.get("/api/flavors", async (req, res, next) => {
   }
 });
 
+// Get flavors by id
+app.get("/api/flavors/:id", async (req, res, next) => {
+  try {
+    const SQL = `
+      SELECT * from flavors WHERE id=$1 ORDER BY created_at DESC;
+    `;
+    const response = await client.query(SQL, [req.params.id]);
+    res.send(response.rows);
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 // Update flavors
 app.put("/api/flavors/:id", async (req, res, next) => {
   try {
     const SQL = `
       UPDATE flavors
-      SET txt=$1, ranking=$2, updated_at= now()
+      SET name=$1, is_favorite=$2, updated_at= now()
       WHERE id=$3 RETURNING *
     `;
     const response = await client.query(SQL, [
-      req.body.txt,
-      req.body.ranking,
+      req.body.name,
+      req.body.is_favorite,
       req.params.id,
     ]);
     res.send(response.rows[0]);
@@ -59,16 +75,14 @@ app.put("/api/flavors/:id", async (req, res, next) => {
 });
 
 // Delete flavors
-app.delete("/api/flavors/:id ", async (req, res, next) => {
+app.delete("/api/flavors/:id", async (req, res, next) => {
   try {
-    const SQL = `
-      DELETE from flavors
-      WHERE id = $1
-    `;
-    const response = await client.query(SQL, [req.params.id]);
-    res.sendStatus(204);
-  } catch (ex) {
-    next(ex);
+    const response = await client.query("DELETE FROM flavors WHERE id = $1", [
+      req.params.id,
+    ]);
+    res.status(204).send(response.rows[0]);
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -78,22 +92,22 @@ const init = async () => {
   await client.connect();
   let SQL = `
     DROP TABLE IF EXISTS flavors;
-    CREATE TABLE flavors(
+    CREATE TABLE IF NOT EXISTS flavors(
       id SERIAL PRIMARY KEY,
+      name VARCHAR(254),
+      is_favorite BOOLEAN,
       created_at TIMESTAMP DEFAULT now(),
-      updated_at TIMESTAMP DEFAULT now(),
-      ranking INTEGER DEFAULT 3 NOT NULL,
-      txt VARCHAR(255) NOT NULL
+      updated_at TIMESTAMP DEFAULT now()
     );
-  `;
+    `;
   await client.query(SQL);
   console.log("tables created");
-  SQL = `
-    INSERT INTO flavors(txt, ranking) VALUES('learn express', 5);
-    INSERT INTO flavors(txt, ranking) VALUES('write SQL queries', 4);
-    INSERT INTO flavors(txt, ranking) VALUES('create routes', 2);
+  const table = `
+    INSERT INTO flavors(name, is_favorite) VALUES('chocalate', true);
+    INSERT INTO flavors(name, is_favorite) VALUES('vanilla', false);
+    INSERT INTO flavors(name, is_favorite) VALUES('mango', true);
   `;
-  await client.query(SQL);
+  await client.query(table);
   console.log("data seeded");
   const port = process.env.PORT || 3000;
   app.listen(port, () => console.log(`listening on port ${port}`));
