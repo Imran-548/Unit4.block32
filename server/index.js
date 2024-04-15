@@ -1,8 +1,8 @@
 const pg = require("pg");
-const client = new pg.Client(
-  process.env.DATABASE_URL || "postgres://localhost/acme_notes_db"
-);
 const express = require("express");
+const client = new pg.Client(
+  process.env.DATABASE_URL || "postgres://localhost/the_acme_notes_db"
+);
 const app = express();
 
 // parse the body into JS Objects
@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(require("morgan")("dev"));
 
 // Create Notes - C
-app.post("/api/notes", async (req, res, next) => {
+app.post("/api/flavors", async (req, res, next) => {
   try {
     const SQL = `
       INSERT INTO notes(txt)
@@ -26,11 +26,11 @@ app.post("/api/notes", async (req, res, next) => {
   }
 });
 
-// Read Notes - R
-app.get("/api/notes", async (req, res, next) => {
+// Get flavors
+app.get("/api/flavors", async (req, res, next) => {
   try {
     const SQL = `
-      SELECT * from notes ORDER BY created_at DESC;
+      SELECT * from flavors ORDER BY created_at DESC;
     `;
     const response = await client.query(SQL);
     res.send(response.rows);
@@ -39,11 +39,11 @@ app.get("/api/notes", async (req, res, next) => {
   }
 });
 
-// Update Notes - U
-app.put("/api/notes/:id", async (req, res, next) => {
+// Update flavors
+app.put("/api/flavors/:id", async (req, res, next) => {
   try {
     const SQL = `
-      UPDATE notes
+      UPDATE flavors
       SET txt=$1, ranking=$2, updated_at= now()
       WHERE id=$3 RETURNING *
     `;
@@ -58,11 +58,11 @@ app.put("/api/notes/:id", async (req, res, next) => {
   }
 });
 
-// Delete Notes - D
-app.delete("/api/notes/:id", async (req, res, next) => {
+// Delete flavors
+app.delete("/api/flavors/:id ", async (req, res, next) => {
   try {
     const SQL = `
-      DELETE from notes
+      DELETE from flavors
       WHERE id = $1
     `;
     const response = await client.query(SQL, [req.params.id]);
@@ -77,8 +77,8 @@ app.delete("/api/notes/:id", async (req, res, next) => {
 const init = async () => {
   await client.connect();
   let SQL = `
-    DROP TABLE IF EXISTS notes;
-    CREATE TABLE notes(
+    DROP TABLE IF EXISTS flavors;
+    CREATE TABLE flavors(
       id SERIAL PRIMARY KEY,
       created_at TIMESTAMP DEFAULT now(),
       updated_at TIMESTAMP DEFAULT now(),
@@ -89,9 +89,9 @@ const init = async () => {
   await client.query(SQL);
   console.log("tables created");
   SQL = `
-    INSERT INTO notes(txt, ranking) VALUES('learn express', 5);
-    INSERT INTO notes(txt, ranking) VALUES('write SQL queries', 4);
-    INSERT INTO notes(txt, ranking) VALUES('create routes', 2);
+    INSERT INTO flavors(txt, ranking) VALUES('learn express', 5);
+    INSERT INTO flavors(txt, ranking) VALUES('write SQL queries', 4);
+    INSERT INTO flavors(txt, ranking) VALUES('create routes', 2);
   `;
   await client.query(SQL);
   console.log("data seeded");
